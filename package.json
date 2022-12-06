@@ -20,6 +20,7 @@
     "@angular/router": "~13.3.0",
     "@babylonjs/core": "^5.35.1",
     "@babylonjs/gui": "^5.35.1",
+    "@babylonjs/inspector": "^5.35.1",
     "@babylonjs/materials": "^5.35.1",
     "rxjs": "~7.5.0",
     "tslib": "^2.3.0",
