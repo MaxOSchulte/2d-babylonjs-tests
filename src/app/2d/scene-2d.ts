@@ -12,20 +12,24 @@ import {
   Scene,
   TransformNode,
   UniversalCamera,
-  Vector3,
+  Vector3
 } from '@babylonjs/core';
 import { GridMaterial } from '@babylonjs/materials';
 import { Subject } from 'rxjs';
 
 
 export class TrackWithTrains extends TransformNode {
-  private readonly tracks: Mesh[] = [];
+  private readonly tracks: {mesh: Mesh, path: Vector3[]}[] = [];
   private readonly trains: Mesh[] = [];
 
 
-  addTrack(mesh: Mesh): void {
+  addTrack(mesh: Mesh, path: Vector3[]): void {
     mesh.parent = this;
-    this.tracks.push(mesh);
+    this.tracks.push({mesh, path: [...path]});
+  }
+
+  getMatchingTrack(track: Mesh): {mesh: Mesh, path: Vector3[]} | undefined {
+    return this.tracks.find(({mesh}) => mesh === track)
   }
 
   addTrain(mesh: Mesh): void {
@@ -39,8 +43,10 @@ export function CreateBoxWithActionMangerFactory(scene: Scene2d): (position: Vec
   const boxActionmanager = new ActionManager(scene);
 
   let moveObservable: Observer<any> | null;
+  let startPosition: Vector3 | undefined;
 
   boxActionmanager.registerAction(new ExecuteCodeAction(ActionManager.OnPickDownTrigger, (event) => {
+    startPosition = event.meshUnderPointer!.position.clone();
     moveObservable = scene.onBeforeRenderObservable.add(() => {
       const mesh = event.meshUnderPointer!;
       mesh.setAbsolutePosition(scene.pick(scene.pointerX, scene.pointerY).pickedPoint!);
@@ -50,6 +56,26 @@ export function CreateBoxWithActionMangerFactory(scene: Scene2d): (position: Vec
 
   boxActionmanager.registerAction(new ExecuteCodeAction(ActionManager.OnPickUpTrigger, (event) => {
     scene.onBeforeRenderObservable.remove(moveObservable);
+
+    const mesh = event.source as Mesh;
+    const intersectionMesh = scene.meshes.filter(({name}) => name.startsWith('tube')).find(toTest => toTest.intersectsMesh(mesh))
+    console.log(intersectionMesh, mesh, startPosition);
+    if (!intersectionMesh) {
+      if (mesh && startPosition) {
+        mesh.position = startPosition;
+      }
+      return;
+    }
+    const parent = intersectionMesh.parent as TrackWithTrains;
+    const track = parent.getMatchingTrack(intersectionMesh as Mesh);
+    console.log(track?.mesh?.name, {track})
+    if(!track) {
+      return;
+    }
+    const end = track.path[track.path.length -1].clone();
+
+    parent.addTrain(mesh);
+    mesh.position = end.multiply(new Vector3(0.5, 0.5, 0.5));
   }));
 
   boxActionmanager.registerAction(new ExecuteCodeAction(ActionManager.OnPickTrigger, (event) => {
@@ -104,16 +130,17 @@ export function CreateTubeWithActionMangerFactory(scene: Scene2d): (points: Vect
   return (points: Vector3[]): Mesh => {
     const trackWithTrains = new TrackWithTrains(`${name}${postfix}_tn`, scene);
     trackWithTrains.position = points[0];
+    const path =points.map(points => points.subtract(trackWithTrains.position)).map(({
+                                                                                       x,
+                                                                                       y,
+                                                                                       z,
+                                                                                     }) => new Vector3(Math.round(x), 1, Math.round(z)));
     const tube = MeshBuilder.CreateTube(`${name}${postfix++}`, {
-      path: points.map(points => points.subtract(trackWithTrains.position)).map(({
-                                                                                   x,
-                                                                                   y,
-                                                                                   z,
-                                                                                 }) => new Vector3(Math.round(x), 1, Math.round(z))),
+      path,
       radius: 0.1,
     }, scene)
     tube.actionManager = tubeActionManager;
-    trackWithTrains.addTrack(tube);
+    trackWithTrains.addTrack(tube, path);
     return tube;
   };
 }
