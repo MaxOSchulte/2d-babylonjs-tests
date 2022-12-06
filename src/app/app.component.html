@@ -1,3 +1,6 @@
 <canvas #canvas></canvas>
 <input type="text" [value]="(clicked$ | async)?.name" disabled>
 <input type="text" [value]="(clicked$ | async)?.position" disabled>
+
+<input type="text" (input)="search(input.value)" #input>
+<button (click)="clearHighlights()">clear</button>

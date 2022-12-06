@@ -15,6 +15,7 @@ import {
 import { GridMaterial } from '@babylonjs/materials';
 import { Subject } from 'rxjs';
 import { TrainObjectManager } from './train-object-manager';
+import { TrackWithTrains } from './track-with-trains';
 
 
 export class Scene2d extends Scene {
@@ -24,7 +25,7 @@ export class Scene2d extends Scene {
 
   clicked$$ = new Subject<Mesh>();
 
-  trackSwitch$$ = new Subject<{trainName: string, trackOrigin: string, trackName: string}>();
+  trackSwitch$$ = new Subject<{ trainName: string, trackOrigin: string, trackName: string }>();
 
 
   trainObjectManager = new TrainObjectManager(this);
@@ -36,6 +37,38 @@ export class Scene2d extends Scene {
     this.createGroundPlane();
     this.clearColor = new Color4(.9, .9, .9, 1);
     this.addSceneObservables();
+  }
+
+  searchByTrackAndTrain(term: string, clearOnUpdate = false): void {
+    const trackWithTrains = this.transformNodes
+      .filter(tf => tf instanceof TrackWithTrains)
+      .filter(({name}) => name.includes(term)) as TrackWithTrains[];
+
+    if (clearOnUpdate) {
+      this.removeAllHighlights();
+    }
+
+    trackWithTrains.forEach(tf => {
+      tf.allTrackNames.forEach(name => this.highlight(name));
+    })
+
+  }
+
+
+  highlight(part: string): void {
+    console.log(part)
+    const m = this.getMeshByName(part);
+    if (!m) {
+      return;
+    }
+    m.outlineColor = new Color3(0.4, 0.4, 1);
+    m.outlineWidth = 0.3;
+    m.renderOutline = true;
+  }
+
+
+  removeAllHighlights(): void {
+    this.meshes.forEach(mesh => mesh.renderOutline = false);
   }
 
   private addSceneObservables() {
