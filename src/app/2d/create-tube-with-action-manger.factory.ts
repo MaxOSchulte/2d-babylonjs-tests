@@ -34,20 +34,20 @@ export function CreateTubeWithActionMangerFactory(scene: Scene2d): (points: Vect
   const name = 'tube';
   let postfix = 1;
 
-  return (points: Vector3[]): Mesh => {
+  return (globalPath: Vector3[]): Mesh => {
     const trackWithTrains = new TrackWithTrains(`${name}${postfix}_tn`, scene);
-    trackWithTrains.position = points[0];
-    const path = points.map(points => points.subtract(trackWithTrains.position)).map(({
+    trackWithTrains.position = globalPath[0];
+    const localPath = globalPath.map(points => points.subtract(trackWithTrains.position)).map(({
                                                                                         x,
                                                                                         y,
                                                                                         z,
                                                                                       }) => new Vector3(Math.round(x), 1, Math.round(z)));
     const tube = MeshBuilder.CreateTube(`${name}${postfix++}`, {
-      path,
+      path: localPath,
       radius: 0.1,
     }, scene)
     tube.actionManager = tubeActionManager;
-    trackWithTrains.addTrack(tube, path);
+    trackWithTrains.addTrack(tube, localPath);
     return tube;
   };
 }
