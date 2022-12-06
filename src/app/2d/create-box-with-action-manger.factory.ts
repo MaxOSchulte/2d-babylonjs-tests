@@ -21,28 +21,34 @@ export function CreateBoxWithActionMangerFactory(scene: Scene2d): (position: Vec
     scene.onBeforeRenderObservable.remove(moveObservable);
 
     const mesh = event.source as Mesh;
-    const intersectionMesh = scene.meshes.filter(({name}) => name.startsWith('tube')).find(toTest => toTest.intersectsMesh(mesh))
-    console.log(intersectionMesh, mesh, startPosition);
-    if (!intersectionMesh) {
+    const newTrackMesh = scene.meshes.filter(({name}) => name.startsWith('tube')).find(toTest => toTest.intersectsMesh(mesh))
+    console.log(newTrackMesh, mesh, startPosition);
+    if (!newTrackMesh) {
       if (mesh && startPosition) {
         mesh.position = startPosition;
       }
       return;
     }
-    const parent = intersectionMesh.parent as TrackWithTrains;
-    const track = parent.getMatchingTrack(intersectionMesh as Mesh);
+    const newParent = newTrackMesh.parent as TrackWithTrains;
+    const track = newParent.getMatchingTrack(newTrackMesh as Mesh);
     console.log(track?.mesh?.name, {track})
     if (!track) {
       return;
     }
     const end = track.path[track.path.length - 1].clone();
 
-    parent.addTrain(mesh);
+    // substring by convention
+    const trackOrigin = (mesh.parent as TrackWithTrains).name.slice(0, -3);
+
+    newParent.addTrain(mesh);
     mesh.position = end.multiply(new Vector3(0.5, 0.5, 0.5));
+
+    //notifications
+    scene.trackSwitch$$.next({trackOrigin, trackName: newParent.name.slice(0, -3), trainName: mesh.name})
   }));
 
   boxActionmanager.registerAction(new ExecuteCodeAction(ActionManager.OnPickTrigger, (event) => {
-    scene.clicked.next(event.source as Mesh);
+    scene.clicked$$.next(event.source as Mesh);
   }))
 
   const name = 'box';

@@ -22,7 +22,10 @@ export class Scene2d extends Scene {
   public pressedModifier = false;
 
 
-  clicked = new Subject<Mesh>();
+  clicked$$ = new Subject<Mesh>();
+
+  trackSwitch$$ = new Subject<{trainName: string, trackOrigin: string, trackName: string}>();
+
 
   trainObjectManager = new TrainObjectManager(this);
 

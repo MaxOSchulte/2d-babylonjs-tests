@@ -25,12 +25,14 @@ export class AppComponent implements AfterViewInit {
   async ngAfterViewInit(): Promise<void> {
     const engine = new Engine(this.canvasRef!.nativeElement);
     const scene = new Scene2d(engine);
-    this.clicked$ = scene.clicked.asObservable();
+    this.clicked$ = scene.clicked$$.asObservable();
     scene.init();
     this.ngZone.runOutsideAngular(() => engine.runRenderLoop(() => scene.render()));
 
     await scene.debugLayer.show({
       overlay: true
     });
+
+    scene.trackSwitch$$.subscribe(info => alert(JSON.stringify(info)));
   }
 }
