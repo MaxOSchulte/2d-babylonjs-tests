@@ -61,7 +61,7 @@ export class TrackWithTrains extends TransformNode {
 
         return distance + max.length() +  max.length() / 2;
       }, 0)
-      mesh.position = this.tail.clone().normalize().multiply(new Vector3(nextDistance, nextDistance, nextDistance));
+      mesh.position = this.tail.clone().normalize().multiply(new Vector3(nextDistance, 1, nextDistance));
     })
   }
 
