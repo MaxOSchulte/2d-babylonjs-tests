@@ -102,8 +102,6 @@ export class Scene2d extends Scene {
     gridMat.opacity = 0.97;
     ground.material = gridMat;
 
-
-
     const groundActionManager = new ActionManager(this);
     ground.actionManager = groundActionManager;
 

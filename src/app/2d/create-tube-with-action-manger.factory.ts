@@ -17,10 +17,6 @@ import { Scene2d } from './scene-2d';
 export function CreateTubeWithActionMangerFactory(scene: Scene2d): (points: Vector3[]) => any {
   const tubeActionManager = new ActionManager(scene);
 
-  let trackToBe: Mesh;
-  let startPos: Nullable<Vector3>;
-  let moveObservable: Nullable<Observer<any>>;
-
   tubeActionManager.registerAction(new ExecuteCodeAction(ActionManager.OnDoublePickTrigger, (event: ActionEvent) => {
     if (!scene.pressedModifier) {
       return;
