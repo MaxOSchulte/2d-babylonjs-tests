@@ -8,31 +8,34 @@ import {
   HemisphericLight,
   Mesh,
   MeshBuilder,
+  Nullable,
+  Observable,
+  Observer,
   Scene,
   UniversalCamera,
   Vector3,
 } from '@babylonjs/core';
 import { GridMaterial } from '@babylonjs/materials';
-import { Subject } from 'rxjs';
 import { TrainObjectManager } from './train-object-manager';
 import { TrackWithTrains } from './track-with-trains';
+import { Subject } from 'rxjs';
 
 
 export class Scene2d extends Scene {
   public pressedKey?: string;
   public pressedModifier = false;
 
-
   clicked$$ = new Subject<Mesh>();
 
   trackSwitch$$ = new Subject<{ trainName: string, trackOrigin: string, trackName: string }>();
 
-
   trainObjectManager = new TrainObjectManager(this);
+
+  pointerUpObservable = new Observable();
 
 
   init(): void {
-    new HemisphericLight('hemi-light', new Vector3(-1, -1, 0), this);
+    new HemisphericLight('hemi-light', new Vector3(-1, 1, 0), this);
     this.setupCamera();
     this.createGroundPlane();
     this.clearColor = new Color4(.9, .9, .9, 1);
@@ -84,6 +87,10 @@ export class Scene2d extends Scene {
         this.pressedModifier = false;
       }
     });
+
+
+    this.actionManager = new ActionManager(this);
+    this.onPointerUp = (event) => this.pointerUpObservable.notifyObservers(event);
   }
 
   private createGroundPlane() {
@@ -96,25 +103,45 @@ export class Scene2d extends Scene {
     ground.material = gridMat;
 
 
-    const points: Vector3[] = [];
 
     const groundActionManager = new ActionManager(this);
     ground.actionManager = groundActionManager;
 
-    groundActionManager.registerAction(new ExecuteCodeAction(ActionManager.OnPickTrigger, (event: ActionEvent) => {
-      if (this.pressedModifier) {
+    groundActionManager.registerAction(new ExecuteCodeAction(ActionManager.OnPickDownTrigger, (event: ActionEvent) => {
+      const startPoint = this.pick(this.pointerX, this.pointerY)?.pickedPoint;
+
+      let trackToBe: Mesh;
+      let moveObservable: Nullable<Observer<any>>;
+      if (!startPoint) {
         return;
       }
 
-      const hit = this.pick(this.pointerX, this.pointerY)?.pickedPoint;
-      if (hit) {
-        points.push(hit)
-      }
+      trackToBe = MeshBuilder.CreateTube(`trackToBe`, {
+        path: [startPoint, startPoint],
+        radius: 0.1,
+        updatable: true,
+      }, this)
 
-      if (points.length === 2) {
-        this.trainObjectManager.createTubeWithActionManager(points);
-        points.length = 0;
-      }
+
+      moveObservable = this.onBeforeRenderObservable.add(() => {
+        const nextPos = this.pick(this.pointerX, this.pointerY)?.pickedPoint;
+        if (!startPoint || !nextPos) {
+          return;
+        }
+        MeshBuilder.CreateTube(`tmp_tube`, {instance: trackToBe, path: [startPoint, nextPos]})
+      });
+
+
+      this.pointerUpObservable.addOnce(() => {
+        this.onBeforeRenderObservable.remove(moveObservable);
+        const endPoint = this.pick(this.pointerX, this.pointerY)?.pickedPoint;
+        if (endPoint) {
+          this.trainObjectManager.createTubeWithActionManager([startPoint, endPoint]);
+        }
+
+        trackToBe.dispose();
+
+      })
     }))
     return ground;
   }
