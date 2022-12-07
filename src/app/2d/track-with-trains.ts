@@ -35,13 +35,15 @@ export class TrackWithTrains extends TransformNode {
     return this.trains.findIndex(neighbour => train === neighbour);
   }
 
-  removeTrain(mesh: Mesh): void {
+  private removeTrain(mesh: Mesh): void {
     const foundIndexForTrain = this.trains.findIndex(train => train === mesh);
     this.trains.splice(foundIndexForTrain, 1);
     this.rearrange();
   }
 
   addTrain(mesh: Mesh, position?: number, skipMeshInRearrage? : boolean): void {
+    (mesh.parent as TrackWithTrains | undefined)?.removeTrain(mesh);
+
     mesh.setParent(this);
     if (position) {
       this.trains.splice(position, 0, mesh);

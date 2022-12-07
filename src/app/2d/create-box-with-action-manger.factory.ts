@@ -27,63 +27,56 @@ export function CreateBoxWithActionMangerFactory(scene: Scene2d): (position: Vec
     let oldPos = mesh.position.clone();
     moveObservable = scene.onBeforeRenderObservable.add(() => {
       mesh.setAbsolutePosition(scene.pick(scene.pointerX, scene.pointerY).pickedPoint!);
-      mesh.position.y = 1;
+      mesh.position.y = 1.1;
 
       delta += scene.deltaTime
       const positionDelta = mesh.position.subtract(oldPos).length();
       if(delta > 100 && positionDelta > 0.5) {
-      console.log(positionDelta)
       delta = 0;
       oldPos = mesh.position.clone();
-
-
-        const insertAfterMesh = scene.meshes.filter(({name}) => name.startsWith('box')).find(toTest => toTest.intersectsMesh(mesh)) as Mesh;
+        const meshBelow = scene.meshes.filter(({name}) => name.startsWith('box')).find(toTest => toTest.intersectsMesh(mesh)) as Mesh;
         const newTrackMesh = scene.meshes.filter(({name}) => name.startsWith('tube')).find(toTest => toTest.intersectsMesh(mesh))
 
         if (!newTrackMesh) {
           return;
         }
-
         const newParent = newTrackMesh.parent as TrackWithTrains;
-        const track = newParent.getMatchingTrack(newTrackMesh as Mesh);
-        if (!track) {
-          return;
-        }
-        (mesh.parent as TrackWithTrains).removeTrain(mesh);
+
         // TODO CHECK IF MESH CENTER IS LEFT OR RIGHT OF CURRENT MESH
         // -> left or right insert
-        newParent.addTrain(mesh, newParent.getTrainPosition(insertAfterMesh), true);
+        newParent.addTrain(mesh, newParent.getTrainPosition(meshBelow), true);
       }
     });
+
+
+    scene.pointerUpObservable.addOnce(() => {
+      scene.onBeforeRenderObservable.remove(moveObservable);
+
+      const mesh = event.source as Mesh;
+      const meshParent = mesh.parent as TrackWithTrains;
+      const insertAfterMesh = scene.meshes.filter(({name}) => name.startsWith('box')).find(toTest => toTest.intersectsMesh(mesh)) as Mesh;
+      const newTrackMesh = scene.meshes.filter(({name}) => name.startsWith('tube')).find(toTest => toTest.intersectsMesh(mesh))
+      if (!newTrackMesh) {
+        startParent?.addTrain(mesh, startPosition);
+        return;
+      }
+      const newParent = newTrackMesh.parent as TrackWithTrains;
+      const track = newParent.getMatchingTrack(newTrackMesh as Mesh);
+      if (!track) {
+        return;
+      }
+
+      // substring by convention
+      const trackOrigin = meshParent.name.slice(0, -3);
+      newParent.addTrain(mesh, newParent.getTrainPosition(insertAfterMesh));
+
+
+      //notifications
+      scene.trackSwitch$$.next({trackOrigin, trackName: newParent.name.slice(0, -3), trainName: mesh.name})
+    })
+
   }));
 
-  boxActionmanager.registerAction(new ExecuteCodeAction(ActionManager.OnPickUpTrigger, (event) => {
-    scene.onBeforeRenderObservable.remove(moveObservable);
-
-    const mesh = event.source as Mesh;
-    const meshParent = mesh.parent as TrackWithTrains;
-    const insertAfterMesh = scene.meshes.filter(({name}) => name.startsWith('box')).find(toTest => toTest.intersectsMesh(mesh)) as Mesh;
-    const newTrackMesh = scene.meshes.filter(({name}) => name.startsWith('tube')).find(toTest => toTest.intersectsMesh(mesh))
-    if (!newTrackMesh) {
-      meshParent.removeTrain(mesh);
-      startParent?.addTrain(mesh, startPosition);
-      return;
-    }
-    const newParent = newTrackMesh.parent as TrackWithTrains;
-    const track = newParent.getMatchingTrack(newTrackMesh as Mesh);
-    if (!track) {
-      return;
-    }
-
-    // substring by convention
-    const trackOrigin = meshParent.name.slice(0, -3);
-    meshParent.removeTrain(mesh);
-    newParent.addTrain(mesh, newParent.getTrainPosition(insertAfterMesh));
-
-
-    //notifications
-    scene.trackSwitch$$.next({trackOrigin, trackName: newParent.name.slice(0, -3), trainName: mesh.name})
-  }));
 
   boxActionmanager.registerAction(new ExecuteCodeAction(ActionManager.OnPickTrigger, (event) => {
     scene.clicked$$.next(event.source as Mesh);

@@ -1,10 +1,12 @@
 import {
   ActionEvent,
   ActionManager,
+  Axis,
   Color3,
   ExecuteCodeAction,
   Mesh,
-  MeshBuilder, Nullable,
+  MeshBuilder,
+  Nullable,
   Observer,
   StandardMaterial,
   Vector3,
@@ -43,14 +45,19 @@ export function CreateTubeWithActionMangerFactory(scene: Scene2d): (points: Vect
                                                                                                  y,
                                                                                                  z,
                                                                                                }) => new Vector3(Math.round(x), 1, Math.round(z)));
+    const localPathLength = localPath.reduce((start, end) => start.multiply(new Vector3(1, 0, 1)).add(end), Vector3.Zero()).length();
+    const tubeEnd = Axis.X.multiply(new Vector3(localPathLength, 0, 0));
+    const localPathEnd = localPath[localPath.length - 1];
+
     const tube = MeshBuilder.CreateTube(`${name}${postfix++}`, {
-      path: localPath,
+      path: [Vector3.Zero(), tubeEnd],
       radius: 0.1,
     }, scene)
     tube.actionManager = tubeActionManager;
     tube.material = new StandardMaterial(`${tube.name}_mat`, scene);
     (tube.material as StandardMaterial).diffuseColor = Color3.Black();
-    trackWithTrains.addTrack(tube, localPath);
+    trackWithTrains.addTrack(tube, [Vector3.Zero(), tubeEnd]);
+    trackWithTrains.rotation.y = Vector3.GetAngleBetweenVectors(Axis.X, localPathEnd.multiply(new Vector3(1, 0 ,1)), Axis.Y);
     return tube;
   };
 }

@@ -135,7 +135,7 @@ export class Scene2d extends Scene {
       this.pointerUpObservable.addOnce(() => {
         this.onBeforeRenderObservable.remove(moveObservable);
         const endPoint = this.pick(this.pointerX, this.pointerY)?.pickedPoint;
-        if (endPoint) {
+        if (endPoint && startPoint.subtract(endPoint).length() > 1) {
           this.trainObjectManager.createTubeWithActionManager([startPoint, endPoint]);
         }
 
